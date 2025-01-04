@@ -1,6 +1,8 @@
 # Algorithms and Analysis
  
-    Feature of some Algorithms I learned and implemented when taking Algorithms and Analysis during my Junior Year as an ISBA B.S. student at LMU. 
+    Feature of some Algorithms I learned and implemented when taking 
+    Algorithms and Analysis during my Junior Year as an ISBA B.S. student
+    at LMU. 
 
     The algos covered in these projects are: 
 
