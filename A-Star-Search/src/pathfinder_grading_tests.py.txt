@@ -1,0 +1,466 @@
+from pathfinder import *
+import unittest
+
+class PathfinderGradingTests(unittest.TestCase):
+    """
+    Unit tests for validating the pathfinder's efficacy. Notes:
+    - If this is the set of tests provided in the solution skeleton, it represents an
+      incomplete set that you are expected to add to to adequately test your submission!
+    - Your correctness score on the assignment will be assessed by a more complete,
+      grading set of unit tests.
+    - A portion of your style grade will also come from proper type hints; remember to
+      validate your submission using `mypy .` and ensure that no issues are found.
+    """
+    
+    def run_maze(self, maze: list[str], solution_expected: bool, optimal_cost: int = 0) -> None:
+        """
+        For a given maze (a list of strings denoting the maze contents), runs your pathfinder algorithm
+        and determines whether or not it returns the correct and optimal solution, if one exists.
+        
+        Attributes:
+            maze (list[str]):
+                The 2D list of strings denoting the maze layout, including locations of the player's
+                initial state, walls, mud tiles, and targets to hit.
+            solution_expected (bool):
+                Whether or not the maze can be solved. If True, it is expected that your pathfinder will
+                yield the correct series of steps needed to shoot all targets in the lowest cost possible.
+                If False, it is expected that your pathfinder will return None.
+            optimal_cost (int):
+                If there is indeed a solution expected, the optimal_cost will indicate the lowest cost
+                possible in solving the maze. It is possible to have a solution that may solve mazes but
+                not in the optimal way, which will not receive credit.
+        """
+        problem = MazeProblem(maze)
+        solution = pathfind(problem)
+        error_suffix = "Test Failure: " + self._testMethodName + "\nGiven Solution: " + str(solution) + "\nMaze:\n" + "\n".join(maze)
+        
+        if not solution_expected: 
+            if not solution is None:
+                self.fail("[X] You returned a solution where none was possible on this maze:\n" + error_suffix)
+            else: 
+                return
+        elif solution is None:
+            self.fail("[X] You returned an answer of no solution (None) where one was expected on maze:\n" + error_suffix)
+        
+        result = problem.test_solution(solution)
+        
+        self.assertTrue(result["is_solution"], "[X] You returned a solution that was incorrect on this maze:\n" + error_suffix)
+        self.assertEqual(result["cost"], optimal_cost, "[X] You returned a suboptimal solution on this maze:\n" + error_suffix)
+        
+    def make_giga_maze(self, n_cols: int, n_rows: int, initial: tuple[int, int], walls: set[tuple[int, int]] = set(), muds: set[tuple[int, int]] = set(), targets: set[tuple[int, int]] = set()) -> list[str]:
+        """
+        Procedurally creates a maze with the given n_cols and n_rows dimensions, as well as the
+        locations of the player's start and any walls, mud tiles, and targets.
+    
+        Parameters:
+            n_cols, n_rows (int):
+                The number of columns and rows that the maze will have.
+            initial (tuple[int, int]):
+                The player's starting position in the maze.
+            walls, muds, targets (set[tuple[int, int]]):
+                Sets of locations of each of the specified maze entitites.
+    
+        Returns:
+            list[str]:
+                A list of str rows representing the maze specified in the parameters.
+        """
+        maze = []
+        for r in range(n_rows):
+            row = ""
+            for c in range(n_cols):
+                current_loc = (c, r)
+                if r == 0 or r == n_rows-1 or c == 0 or c == n_cols-1 or current_loc in walls:
+                    row += "X"
+                elif current_loc == initial:
+                    row += "@"
+                elif current_loc in muds:
+                    row += "M"
+                elif current_loc in targets:
+                    row += "T"
+                else:
+                    row += "."
+            maze.append(row)
+        return maze
+        
+    # Tests with solutions
+    # ---------------------------------------------------------------------------
+    def test_pathfinder_t0(self) -> None:
+        maze = [
+           # 012345
+            "XXXXXX", # 0
+            "XT...X", # 1
+            "X....X", # 2
+            "X@...X", # 3
+            "XXXXXX", # 4
+        ]
+        
+        self.run_maze(maze, True, 2)
+        
+    def test_pathfinder_t1(self) -> None:
+        maze = [
+           # 012345
+            "XXXXXX", # 0
+            "X.T..X", # 1
+            "X....X", # 2
+            "X@...X", # 3
+            "XXXXXX", # 4
+        ]
+        
+        self.run_maze(maze, True, 3)
+        
+    def test_pathfinder_t2(self) -> None:
+        maze = [
+           # 012345
+            "XXXXXX", # 0
+            "XT...X", # 1
+            "X....X", # 2
+            "X@..TX", # 3
+            "XXXXXX", # 4
+        ]
+        
+        self.run_maze(maze, True, 2)
+    
+    def test_pathfinder_t3(self) -> None:
+        maze = [
+           # 012345
+            "XXXXXX", # 0
+            "XT...X", # 1
+            "X.XT.X", # 2
+            "X@..TX", # 3
+            "XXXXXX", # 4
+        ]
+        
+        self.run_maze(maze, True, 6)
+        
+    def test_pathfinder_t4(self) -> None:
+        maze = [
+           # 012345
+            "XXXXXX", # 0
+            "XT..XX", # 1
+            "XX@X.X", # 2
+            "XX.X.X", # 3
+            "X...TX", # 4
+            "XXXXXX", # 5
+        ]
+        
+        self.run_maze(maze, True, 8)
+        
+    def test_pathfinder_t5(self) -> None:
+        maze = [
+           # 012345
+            "XXXXXX", # 0
+            "XTM.XX", # 1
+            "XXMX.X", # 2
+            "XX@X.X", # 3
+            "X.M.TX", # 4
+            "XXXXXX", # 5
+        ]
+        
+        self.run_maze(maze, True, 14)
+        
+    def test_pathfinder_t6(self) -> None:
+        maze = [
+           # 012345
+            "XXXXXX", # 0
+            "XT@XXX", # 1
+            "XXXXXX", # 2
+        ]
+        
+        self.run_maze(maze, True, 2)
+    
+    def test_pathfinder_t7(self) -> None:
+        maze = [
+           # 012345
+            "XXXXXX", # 0
+            "XX@XXX", # 1
+            "XXXXXX", # 2
+        ]
+        
+        self.run_maze(maze, True, 0)
+        
+    def test_pathfinder_t8(self) -> None:
+        maze = [
+           # 012345
+            "XXXXXX", # 0
+            "XT...X", # 1
+            "XXXX.X", # 2
+            "XXXX.X", # 3
+            "X@..TX", # 4
+            "XXXXXX", # 5
+        ]
+        
+        self.run_maze(maze, True, 10)
+        
+    def test_pathfinder_t9(self) -> None:
+        maze = [
+           # 012345
+            "XXXXXX", # 0
+            "XT..TX", # 1
+            "X..T.X", # 2
+            "X....X", # 3
+            "X@X..X", # 4
+            "XXXXXX", # 5
+        ]
+        
+        self.run_maze(maze, True, 7)
+        
+    def test_pathfinder_t10(self) -> None:
+        maze = [
+           # 012345
+            "XXXXXX", # 0
+            "XT.TTX", # 1
+            "X....X", # 2
+            "X....X", # 3
+            "X@X..X", # 4
+            "XXXXXX", # 5
+        ]
+        
+        self.run_maze(maze, True, 6)
+        
+    def test_pathfinder_t11(self) -> None:
+        maze = [
+           # 012345
+            "XXXXXX", # 0
+            "XTMTTX", # 1
+            "XMMM.X", # 2
+            "X....X", # 3
+            "X@...X", # 4
+            "XXXXXX", # 5
+        ]
+        
+        self.run_maze(maze, True, 9)
+        
+    def test_pathfinder_t12(self) -> None:
+        maze = [
+           # 012345
+            "XXXXXX", # 0
+            "XTMTTX", # 1
+            "XMMM.X", # 2
+            "X....X", # 3
+            "X@...X", # 4
+            "XXXXXX", # 5
+        ]
+        
+        self.run_maze(maze, True, 9)
+        
+    def test_pathfinder_t13(self) -> None:
+        maze = [
+           # 01234567
+            "XXXXXXXX", # 0
+            "X..XTX.X", # 1
+            "XXXX.XXX", # 2
+            "XT....TX", # 3
+            "X.XM.M.X", # 4
+            "X@.M...X", # 5
+            "X......X", # 6
+            "XXXXXXXX", # 7
+        ]
+        
+        self.run_maze(maze, True, 9)
+        
+    def test_pathfinder_t14(self) -> None:
+        maze = [
+           # 01234567
+            "XXXXXXXX", # 0
+            "X..T.T.X", # 1
+            "XXXX.XXX", # 2
+            "XT....TX", # 3
+            "X.XM.M.X", # 4
+            "X@.M...X", # 5
+            "X...T..X", # 6
+            "XXXXXXXX", # 7
+        ]
+        
+        self.run_maze(maze, True, 13)
+        
+    def test_pathfinder_t15(self) -> None:
+        maze = [
+           # 01234567
+            "XXXXXXXX", # 0
+            "X..T.T.X", # 1
+            "XXXX.XXX", # 2
+            "XTM...TX", # 3
+            "XMXM.M.X", # 4
+            "X@.M...X", # 5
+            "X...T..X", # 6
+            "XXXXXXXX", # 7
+        ]
+        
+        self.run_maze(maze, True, 13)
+    
+    def test_pathfinder_t16(self) -> None:
+        maze = [
+           # 01234567
+            "XXXXXXXX", # 0
+            "X@XXTXXX", # 1
+            "XTTXTTTX", # 2
+            "XTMTTTXX", # 3
+            "XTXXTXXX", # 4
+            "XTXXTXXX", # 5
+            "XTTTTTXX", # 6
+            "XXXXXXXX", # 7
+        ]
+        
+        self.run_maze(maze, True, 22)
+        
+    def test_pathfinder_t17(self) -> None:
+        maze = [
+           # 01234567
+            "XXXXXXXX", # 0
+            "XT....TX", # 1
+            "X.X.XX.X", # 2
+            "XM.....X", # 3
+            "X.X..X.X", # 4
+            "XTXX@X.X", # 5
+            "XT..M.TX", # 6
+            "XXXXXXXX", # 7
+        ]
+        
+        self.run_maze(maze, True, 15)
+    
+    def test_pathfinder_t18(self) -> None:
+        maze = [
+           # 012345678
+            "XXXXXXXXX", # 0
+            "XT......X", # 1
+            "XXXX.XXXX", # 2
+            "XTXX.XXTX", # 3
+            "X...@...X", # 4
+            "XXXX.XXXX", # 5
+            "X..X.X..X", # 6
+            "X..T.T..X", # 7
+            "XXXXXXXXX", # 8
+        ]
+        
+        self.run_maze(maze, True, 29)
+        
+    def test_pathfinder_t19(self) -> None:
+        maze = [
+           # 012345678
+            "XXXXXXXXX", # 0
+            "XT......X", # 1
+            "XXXXMXXXX", # 2
+            "XTXXMXXTX", # 3
+            "X...@...X", # 4
+            "XXXX.XXXX", # 5
+            "X..X.X..X", # 6
+            "X..T.T..X", # 7
+            "XXXXXXXXX", # 8
+        ]
+        
+        self.run_maze(maze, True, 33)
+    
+    # GIGAMAZE Tests with Solutions
+    # ---------------------------------------------------------------------------
+    def test_pathfinder_gigamaze_t0(self) -> None:
+        maze = self.make_giga_maze(102, 102, (1,1), walls={(99, 100)}, targets={(100, 100)})
+        
+        self.run_maze(maze, True, 101)
+        
+    def test_pathfinder_gigamaze_t1(self) -> None:
+        maze = self.make_giga_maze(102, 102, (50,50), targets={(1, 100),(1, 1),(100, 100), (100, 1)})
+        
+        self.run_maze(maze, True, 152)
+        
+    
+    # Tests with NO solutions
+    # ---------------------------------------------------------------------------
+    def test_pathfinder_nosoln_t0(self) -> None:
+        maze = [
+           # 012345
+            "XXXXXX", # 0
+            "XTX..X", # 1
+            "XX...X", # 2
+            "X@...X", # 3
+            "XXXXXX", # 4
+        ]
+        
+        self.run_maze(maze, False)
+        
+    def test_pathfinder_nosoln_t1(self) -> None:
+        maze = [
+           # 012345
+            "XXXXXX", # 0
+            "XTX.TX", # 1
+            "XX...X", # 2
+            "X@...X", # 3
+            "XXXXXX", # 4
+        ]
+        
+        self.run_maze(maze, False)
+        
+    def test_pathfinder_nosoln_t2(self) -> None:
+        maze = [
+           # 012345
+            "XXXXXX", # 0
+            "XT...X", # 1
+            "XXXXXX", # 2
+            "X@..TX", # 3
+            "XXXXXX", # 4
+        ]
+        
+        self.run_maze(maze, False)
+        
+    def test_pathfinder_nosoln_t3(self) -> None:
+        maze = [
+           # 012345
+            "XXXXXX", # 0
+            "XT..XX", # 1
+            "X..X.X", # 2
+            "XXX..X", # 3
+            "X@..TX", # 4
+            "XXXXXX", # 5
+        ]
+        
+        self.run_maze(maze, False)
+        
+    def test_pathfinder_nosoln_t4(self) -> None:
+        maze = [
+           # 012345
+            "XXXXXX", # 0
+            "X.TTXX", # 1
+            "X..X.X", # 2
+            "XXX..X", # 3
+            "X@...X", # 4
+            "XXXXXX", # 5
+        ]
+        
+        self.run_maze(maze, False)
+        
+    def test_pathfinder_nosoln_t5(self) -> None:
+        maze = [
+           # 012345
+            "XXXXXX", # 0
+            "X.TTXX", # 1
+            "X..XXX", # 2
+            "XXX@XX", # 3
+            "X..X.X", # 4
+            "XXXXXX", # 5
+        ]
+        
+        self.run_maze(maze, False)
+        
+    def test_pathfinder_nosoln_t6(self) -> None:
+        maze = [
+           # 01234567
+            "XXXXXXXX", # 0
+            "X@XXTXXX", # 1
+            "XTTXTTTX", # 2
+            "XTMTTTXX", # 3
+            "XTXXTXXX", # 4
+            "XTXXXXXX", # 5
+            "XTTXTTXX", # 6
+            "XXXXXXXX", # 7
+        ]
+        
+        self.run_maze(maze, False)
+        
+    # GIGAMAZE Tests with NO Solutions
+    # ---------------------------------------------------------------------------
+    def test_pathfinder_gigamaze_nosoln_t0(self) -> None:
+        maze = self.make_giga_maze(102, 102, (1,1), walls={(98, 100),(99, 99), (100, 98)}, targets={(100, 100)})
+        
+        self.run_maze(maze, False)
+
+if __name__ == '__main__':
+    unittest.main()
